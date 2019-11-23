@@ -1,0 +1,7 @@
+- name: Create the App service plan
+    azure_rm_appserviceplan:
+      resource_group: "myresourcegroup"
+      name: "myappserviceplan"
+      is_linux: true
+      sku: S1
+      number_of_workers: 1

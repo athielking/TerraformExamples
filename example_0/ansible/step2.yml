@@ -1,0 +1,13 @@
+- name: Get facts of existing App service plan
+    azure_rm_appserviceplan_facts:
+      resource_group: "myresourcegroup"
+      name: "myappserviceplan"
+    register: facts
+
+  - name: Scale up the App service plan
+    azure_rm_appserviceplan:
+      resource_group: "myresourcegroup"
+      name: "myappserviceplan"
+      is_linux: true
+      sku: S2
+      number_of_workers: 3
