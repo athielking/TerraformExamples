@@ -165,7 +165,7 @@ resource "azurerm_app_service" "app_svc" {
   connection_string {
     name = "ClassicGuildBankDb"
     type = "SQLServer"
-    value = "Server=${module.sql-server.address};Initial Catalog=${azurerm_resource_group.rg.name}-db;User ID=terraformadmin;Password=${local.admin_password}"
+    value = "Server=${azurerm_sql_server.db_server.address};Initial Catalog=${azurerm_resource_group.rg.name}-db;User ID=terraformadmin;Password=${local.admin_password}"
   }
 
   # Terraform has a known issue with how their CORS block is configured

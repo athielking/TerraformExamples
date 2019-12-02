@@ -22,7 +22,7 @@ locals {
 
 # Create Azure Resource Group
 resource "azurerm_resource_group" "rg" {
-  name = "${local.resource_group_name}" #Utilizing local variables
+  name = local.resource_group_name #Utilizing local variables
   location = "East US"
 }
 
@@ -30,8 +30,8 @@ resource "azurerm_resource_group" "rg" {
 resource "azurerm_app_service_plan" "app_sp" {
   name = "${local.resource_group_name}-serviceplan"
   # Reference the Terraform Resource Group Object to retrieve properties
-  resource_group_name = "${azurerm_resource_group.rg.name}" 
-  location = "${azurerm_resource_group.rg.location}"
+  resource_group_name = azurerm_resource_group.rg.name 
+  location = azurerm_resource_group.rg.location
 
   sku {
     tier = "Free"
@@ -42,7 +42,7 @@ resource "azurerm_app_service_plan" "app_sp" {
 # Create the Azure App Service pointing to our other resources
 resource "azurerm_app_service" "app_svc" {
   name = "${local.resource_group_name}-appsvc"
-  resource_group_name = "${azurerm_resource_group.rg.name}"
-  location = "${azurerm_resource_group.rg.location}"
-  app_service_plan_id = "${azurerm_app_service_plan.app_sp.id}"
+  resource_group_name = azurerm_resource_group.rg.name
+  location = azurerm_resource_group.rg.location
+  app_service_plan_id = azurerm_app_service_plan.app_sp.id
 }
