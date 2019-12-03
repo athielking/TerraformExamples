@@ -181,7 +181,7 @@ resource "azurerm_app_service" "app_svc" {
 
 # We've wrapped the entire angular static website in a module
 module "angular" {
-  source = "../modules/services/static-web"
+  source = "./modules/services/static-web"
 
   dns_name = local.dns_name
   certificate_arn = "${data.aws_acm_certificate.cert.arn}"
