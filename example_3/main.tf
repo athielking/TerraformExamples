@@ -103,7 +103,7 @@ resource "azurerm_sql_server" "db_server" {
 # Create a firewall rule to allow azure to access the Sql Server
 resource "azurerm_sql_firewall_rule" "db_allow_azure" {
   name = "AllowAzureResources"
-  resource_group_name = var.resource_group
+  resource_group_name = "${azurerm_resource_group.rg.name}"
   server_name = "${azurerm_sql_server.db_server.name}"
   start_ip_address = "0.0.0.0"
   end_ip_address = "0.0.0.0"
@@ -113,7 +113,7 @@ resource "azurerm_sql_firewall_rule" "db_allow_azure" {
 resource "azurerm_sql_firewall_rule" "allow_ip_block" {
   count = length(local.allowed_ips)
   name = "Allow ${local.allowed_ips[count.index].start}"
-  resource_group_name = var.resource_group
+  resource_group_name = "${azurerm_resource_group.rg.name}"
   server_name = "${azurerm_sql_server.db_server.name}"
   start_ip_address = "${local.allowed_ips[count.index].start}"
   end_ip_address = "${local.allowed_ips[count.index].end}"
