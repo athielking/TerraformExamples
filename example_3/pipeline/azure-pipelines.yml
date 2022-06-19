@@ -1,0 +1,191 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- master
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+- stage: Infrastructure
+  condition: ne(variables['Build.Reason'], 'PullRequest')
+  jobs:
+  - job: Terraform
+    steps:
+    - task: AzureKeyVault@2
+      inputs:
+        azureSubscription: 'Pay-As-You-Go(49c5473a-4747-494e-8cfd-1c6671b3b175)'
+        KeyVaultName: 'kmxTerraformKeyVault'
+        SecretsFilter: '*'
+        RunAsPreJob: true 
+    - script: |
+        mkdir "$(Build.StagingDirectory)/terraform-plans"
+        terraform init
+      displayName: "Terraform Init"
+      env:
+        ARM_ACCESS_KEY: $(ArmAccessKey)
+    - script: terraform plan -out "$(Build.StagingDirectory)/terraform-plans/tf.plan"
+      displayName: "Terraform Plan"
+      env:
+        TF_VAR_sql_admin_password: $(SQL_ADMIN_PASSWORD)
+        ARM_ACCESS_KEY: $(ArmAccessKey)
+        ARM_CLIENT_ID: $(ArmClientId)
+        ARM_CLIENT_SECRET: $(ArmClientSecret)
+        ARM_SUBSCRIPTION_ID: $(ArmSubscriptionId)
+        ARM_TENANT_ID: $(ArmTenantId)
+        AWS_ACCESS_KEY: $(AwsAccessKey)
+        AWS_SECRET_ACCESS_KEY: $(AwsSecretAccesskey)
+    - script: terraform apply -input=false "$(Build.StagingDirectory)/terraform-plans/tf.plan"
+      displayName: "Terraform Apply"
+      env:        
+        ARM_ACCESS_KEY: $(ArmAccessKey)
+        ARM_CLIENT_ID: $(ArmClientId)
+        ARM_CLIENT_SECRET: $(ArmClientSecret)
+        ARM_SUBSCRIPTION_ID: $(ArmSubscriptionId)
+        ARM_TENANT_ID: $(ArmTenantId)
+        AWS_ACCESS_KEY: $(AwsAccessKey)
+        AWS_SECRET_ACCESS_KEY: $(AwsSecretAccesskey)
+- stage: Build
+  jobs:
+  - job: BuildApi
+    steps:
+    - task: DotNetCoreCLI@2
+      displayName: "dotnet restore"
+      inputs:
+        command: 'restore'
+        projects: |
+          **/ClassicGuildBankData.csproj
+          **/ClassicGuildBankApi.csproj
+        feedsToUse: 'select'
+    - task: DotNetCoreCLI@2
+      displayName: "dotnet build"
+      inputs:
+        command: 'build'
+        projects: |
+          **/ClassicGuildBankData.csproj
+          **/ClassicGuildBankApi.csproj
+        arguments: '--configuration $(BuildConfiguration)'
+    - task: DotNetCoreCLI@2
+      displayName: "dotnet publish"
+      inputs:
+        command: 'publish'
+        publishWebProjects: false
+        projects: |
+          **/ClassicGuildBankData.csproj
+          **/ClassicGuildBankApi.csproj
+        arguments: '--configuration $(BuildConfiguration) --output $(build.artifactstagingdirectory)'
+        zipAfterPublish: false
+    - task: PublishBuildArtifacts@1
+      displayName: "Publish dotnet Artifacts"
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'drop'
+        publishLocation: 'Container'
+  - job: BuildClient
+    dependsOn: []
+    steps:
+    - task: Npm@1
+      displayName: "npm install"
+      inputs:
+        command: 'install'
+        workingDir: 'classic-guild-bank'
+    - task: Npm@1
+      displayName: "npm build"
+      inputs:
+        command: 'custom'
+        workingDir: 'classic-guild-bank'
+        customCommand: 'run-script build-prod'
+    - task: PublishBuildArtifacts@1
+      displayName: "Publish Client Artifacts"
+      inputs:
+        PathtoPublish: '$(System.DefaultWorkingDirectory)/classic-guild-bank/dist'
+        ArtifactName: 'dist'
+        publishLocation: 'Container'
+- stage: Deploy
+  condition: ne(variables['Build.Reason'], 'PullRequest')
+  dependsOn: Build
+  jobs:
+  - job: DeployApi
+    steps:
+    
+    - task: DownloadBuildArtifacts@1
+      inputs:
+        buildType: 'current'
+        downloadType: 'single'
+        artifactName: 'drop'
+        downloadPath: '$(System.ArtifactsDirectory)/_ClassicGuildBank'
+    - task: AzureAppServiceManage@0
+      displayName: "Stop App Service"
+      inputs:
+        azureSubscription: 'Pay-As-You-Go(49c5473a-4747-494e-8cfd-1c6671b3b175)'
+        Action: 'Stop Azure App Service'
+        WebAppName: 'ClassicGuildBank-api'
+    - task: AzureRmWebAppDeployment@4
+      displayName: "App Svc Deploy"
+      inputs:
+        ConnectionType: 'AzureRM'
+        azureSubscription: 'Pay-As-You-Go(49c5473a-4747-494e-8cfd-1c6671b3b175)'
+        appType: 'webApp'
+        WebAppName: 'ClassicGuildBank-api'
+        packageForLinux: '$(System.ArtifactsDirectory)/_ClassicGuildBank/drop/ClassicGuildBankApi'
+    - task: AzureAppServiceManage@0
+      displayName: "Start App Service"
+      inputs:
+        azureSubscription: 'Pay-As-You-Go(49c5473a-4747-494e-8cfd-1c6671b3b175)'
+        Action: 'Start Azure App Service'
+        WebAppName: 'ClassicGuildBank-api'
+  - job: DeployClient
+    dependsOn: []
+    steps:    
+    - task: AzureKeyVault@2
+      inputs:
+        azureSubscription: 'Pay-As-You-Go(49c5473a-4747-494e-8cfd-1c6671b3b175)'
+        KeyVaultName: 'kmxTerraformKeyVault'
+        SecretsFilter: '*'
+        RunAsPreJob: true 
+    - task: DownloadBuildArtifacts@1
+      inputs:
+        buildType: 'current'
+        downloadType: 'single'
+        artifactName: 'dist'
+        downloadPath: '$(System.ArtifactsDirectory)/_ClassicGuildBank'
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '3.x'
+        addToPath: true
+        architecture: 'x64'
+    - script: python -m pip install awscli
+      displayName: "Download AWS Cli"
+    - task: AWSCLI@1
+      displayName: "Clear s3"
+      inputs:
+        awsCredentials: 'aws-501software'
+        regionName: 'us-east-1'
+        awsCommand: 's3'
+        awsSubCommand: 'rm'
+        awsArguments: 's3://classicguildbank.thielking.dev/ --recursive'
+    - task: S3Upload@1
+      displayName: "Upload s3"
+      inputs:
+        awsCredentials: 'aws-501software'
+        regionName: 'us-east-1'
+        bucketName: 'classicguildbank.thielking.dev'
+        sourceFolder: '$(System.ArtifactsDirectory)/_ClassicGuildBank/dist/classic-guild-bank'
+        globExpressions: '**'
+    - script: |
+        export dist_id="$(aws cloudfront list-distributions --query "DistributionList.Items[*].{id:Id,origin:Origins.Items[0].Id}[?origin=='s3-classicguildbank.thielking.dev'].id" --output text)"
+        echo "##vso[task.setvariable variable=CLOUDFRONT_DISTRIBUTION]$dist_id"
+      displayName: "Get Cloudfront Distribution"
+      env:
+        AWS_SECRET_ACCESS_KEY: $(AwsSecretAccessKey)
+        AWS_ACCESS_KEY_ID: $(AwsAccessKey)
+    - task: AWSCLI@1
+      inputs:
+        awsCredentials: 'aws-501software'
+        regionName: 'us-east-1'
+        awsCommand: 'cloudfront'
+        awsSubCommand: 'create-invalidation'
+        awsArguments: '--distribution-id $(CLOUDFRONT_DISTRIBUTION) --paths "/*"'

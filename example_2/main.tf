@@ -7,17 +7,22 @@
 
 # Setup Terraform
 terraform {
-  required_version = ">= 0.12" 
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "3.0.2"
+    }
+  }
 }
 
 # Setup our Azure Provider
 provider "azurerm" {
-  version = "=1.36.0"
+  features {}
 }
 
 # Local Variable Declaration
 locals {
-    resource_group_name = "TerraformLunchAndLearn"
+    resource_group_name = "KMX-DevOpsDays-2"
 }
 
 # Create Azure Resource Group
@@ -27,22 +32,30 @@ resource "azurerm_resource_group" "rg" {
 }
 
 # Azure App Service needs a Service Plan.
-resource "azurerm_app_service_plan" "app_sp" {
-  name = "${local.resource_group_name}-serviceplan"
+resource "azurerm_service_plan" "app_sp" {
+  name                = "${azurerm_resource_group.rg.name}-sp"
   # Reference the Terraform Resource Group Object to retrieve properties
-  resource_group_name = azurerm_resource_group.rg.name 
-  location = azurerm_resource_group.rg.location
-
-  sku {
-    tier = "Free"
-    size = "F1"
-  }
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  os_type             = "Windows"
+  sku_name            = "B1"
 }
 
-# Create the Azure App Service pointing to our other resources
-resource "azurerm_app_service" "app_svc" {
-  name = "${local.resource_group_name}-appsvc"
+# Create the Azure Web App
+resource "azurerm_windows_web_app" "app_svc" {
+  name                = "${azurerm_resource_group.rg.name}-api"
   resource_group_name = azurerm_resource_group.rg.name
-  location = azurerm_resource_group.rg.location
-  app_service_plan_id = azurerm_app_service_plan.app_sp.id
+  location            = azurerm_resource_group.rg.location
+  service_plan_id     = azurerm_service_plan.app_sp.id
+  app_settings = {
+    WEBSITE_RUN_FROM_PACKAGE = "1"
+    ASPNETCORE_ENVIRONMENT   = "Production"
+  }
+
+  site_config {    
+    application_stack {
+      current_stack  = "dotnet"
+      dotnet_version = "v6.0"
+    }
+  }
 }

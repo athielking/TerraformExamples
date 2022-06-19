@@ -1,9 +1,10 @@
-variable "db_backup_key" {
-  type = string
-  description = "Access key for the storage container containing database backup"
+variable "resource_group_location" {
+    type = string
+    default = "eastus"
+    description   = "Location of the resource group." 
 }
 
-variable "db_backup_uri" {
-  type = string
-  description = "Uri for the storage container containing database backup"
+variable "sql_admin_password" {
+    type = string
+    description = "Password for SQL Server Admin Login"
 }
