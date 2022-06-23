@@ -18,7 +18,8 @@ resource appSvc 'Microsoft.Web/sites@2021-03-01' = {
   name: '${resourceGroup().name}-bicep-api'
   location: location
 
-  properties :{    
+  properties :{
+    serverFarmId: servicePlan.id    
     siteConfig: {
       appSettings: [
         {
