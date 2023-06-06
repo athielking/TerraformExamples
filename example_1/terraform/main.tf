@@ -1,6 +1,6 @@
 ########################################
 # Example 1
-# Create Azure Resource Group and storage account
+# Create Azure Resource Group
 ########################################
 
 terraform {
@@ -17,6 +17,6 @@ provider "azurerm" {
 }
 
 resource "azurerm_resource_group" "rg" {
-  name     = "KMX-DevOpsDays-1"
+  name     = "RPM-LunchAndLearn-1"
   location = "East US"
 }

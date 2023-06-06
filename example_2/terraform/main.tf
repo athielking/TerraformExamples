@@ -22,7 +22,7 @@ provider "azurerm" {
 
 # Local Variable Declaration
 locals {
-    resource_group_name = "KMX-DevOpsDays-2"
+    resource_group_name = "RPM-LunchAndLearn-2"
 }
 
 # Create Azure Resource Group
