@@ -7,7 +7,7 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "3.0.2"
+      version = "4.71.0"
     }
   }
 }
@@ -17,6 +17,6 @@ provider "azurerm" {
 }
 
 resource "azurerm_resource_group" "rg" {
-  name     = "RPM-LunchAndLearn-1"
+  name     = "FBI-Rg-1"
   location = "East US"
 }

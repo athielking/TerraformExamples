@@ -10,7 +10,7 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "3.0.2"
+      version = "4.71.0"
     }
   }
 }
@@ -22,7 +22,7 @@ provider "azurerm" {
 
 # Local Variable Declaration
 locals {
-    resource_group_name = "RPM-LunchAndLearn-2"
+    resource_group_name = "FBI-RG-2"
 }
 
 # Create Azure Resource Group
@@ -55,7 +55,7 @@ resource "azurerm_windows_web_app" "app_svc" {
   site_config {    
     application_stack {
       current_stack  = "dotnet"
-      dotnet_version = "v6.0"
+      dotnet_version = "v10.0"
     }
   }
 }

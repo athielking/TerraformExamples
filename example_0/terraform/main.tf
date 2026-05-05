@@ -1,5 +1,6 @@
 resource "azurerm_app_service_plan" "app_sp" {
   name = "myappserviceplan"
+  location = "East US"
   resource_group_name = "myresourcegroup"
   sku {
     tier = "Standard"
